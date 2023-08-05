@@ -1,0 +1,85 @@
+CREATE TABLE customers (
+  customer_id VARCHAR(36) NOT NULL DEFAULT (UUID()),
+  username VARCHAR(50),
+  password VARCHAR(100),
+  first_name VARCHAR(50),
+  last_name VARCHAR(50),
+  email VARCHAR(100),
+  address VARCHAR(200),
+  city VARCHAR(100),
+  state VARCHAR(100),
+  country VARCHAR(100),
+  postal_code VARCHAR(20),
+  PRIMARY KEY (customer_id)
+);
+
+
+
+CREATE TABLE products (
+  product_id VARCHAR(36) NOT NULL DEFAULT (UUID()),
+  product_name VARCHAR(100),
+  price DECIMAL(10, 2),
+  description TEXT,
+  category VARCHAR(50),
+   PRIMARY KEY (product_id)
+);
+
+
+CREATE TABLE orders (
+  order_id VARCHAR(36) NOT NULL DEFAULT (UUID()),
+  customer_id VARCHAR(36),
+  order_date DATE,
+  total_amount DECIMAL(10, 2),
+  FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+  PRIMARY KEY (order_id)
+);
+
+
+CREATE TABLE order_items (
+  order_item_id VARCHAR(36) NOT NULL DEFAULT (UUID()),
+  order_id VARCHAR(36),
+  product_id VARCHAR(36),
+  quantity INT,
+  price DECIMAL(10, 2),
+  FOREIGN KEY (order_id) REFERENCES orders(order_id),
+  FOREIGN KEY (product_id) REFERENCES products(product_id),
+  PRIMARY KEY (order_item_id)
+);
+
+
+DELIMITER //
+CREATE TRIGGER populate_price
+BEFORE INSERT ON order_items
+FOR EACH ROW
+BEGIN
+  SET NEW.price = (
+    SELECT price
+    FROM products
+    WHERE product_id = NEW.product_id
+  );
+END //
+DELIMITER ;
+
+
+INSERT INTO products (product_id, product_name, price, description, category)
+VALUES 
+  (1, 'Widget', 9.99, 'A small widget for various uses.', 'Electronics'),
+  (2, 'Gizmo', 19.99, 'A versatile gizmo with multiple features.', 'Gadgets'),
+  (3, 'Thingamajig', 14.99, 'A quirky thingamajig for everyday needs.', 'Miscellaneous');
+
+
+
+
+-- Step 1: Drop the foreign key constraint
+ALTER TABLE orders DROP FOREIGN KEY orders_ibfk_1;
+
+-- Step 2: Alter the customer_id column
+ALTER TABLE orders MODIFY COLUMN customer_id CHAR(36) NOT NULL DEFAULT UUID();
+
+-- Step 3: Recreate the foreign key constraint
+ALTER TABLE orders ADD CONSTRAINT orders_ibfk_1 FOREIGN KEY (customer_id) REFERENCES customers (customer_id);
+
+DROP TABLE order_items;
+DROP TABLE orders;
+DROP TABLE customers;
+DROP TABLE products;
